@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>StructAI Designer — Advanced 2D Floor Architect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        :root{
+            --stone:#1C1A17;--steel:#3D5A6C;--cement:#8B8880;
+            --copper:#B5651D;--lime:#4A7C59;--sand:#F5F0E8;
+            --rust:#8B3A2A;--sky:#5B8FA8;--panel:#FAFAF7;
+            --border:rgba(44,42,37,0.12);--gold:#D4A853;
+            --dark:#0D0F14;--accent:#FF6B35;
+        }
+        html{scroll-behavior:smooth;}
+        body{font-family:'Barlow',sans-serif;background:var(--dark);color:var(--sand);overflow-x:hidden;}
+
+        /* LANDING PAGE */
+        #landing {
+            min-height: 100vh; position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        #bgCanvas { position: absolute; inset: 0; z-index: 0; background: #0d0f14; }
+
+        .nav {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1.4rem 3rem;
+            border-bottom: 1px solid rgba(181,101,29,0.2);
+            background: rgba(13,15,20,0.6);
+            backdrop-filter: blur(12px);
+        }
+        .nav-logo { display: flex; align-items: center; gap: 14px; }
+        .nav-icon {
+            width: 42px; height: 42px; border: 1.5px solid var(--copper); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(181,101,29,0.1); color: var(--copper); font-weight: bold;
+        }
+        .nav-text .name { font-family: 'DM Serif Display', serif; font-size: 20px; color: #F5F0E8; letter-spacing: .3px; }
+        .nav-text .sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--copper); letter-spacing: 2.5px; text-transform: uppercase; margin-top: 2px; }
+        .nav-links { display: flex; align-items: center; gap: 2rem; font-size: 12px; font-weight: 500; letter-spacing: .5px; }
+        .nav-links a { color: rgba(245,240,232,0.55); text-decoration: none; text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; transition: color .2s; }
+        .nav-links a:hover { color: var(--copper); }
+        .nav-cta {
+            background: var(--copper); color: #F5F0E8; border: none; border-radius: 6px;
+            padding: 8px 20px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; cursor: pointer; font-family: 'Barlow', sans-serif;
+            transition: all .2s;
+        }
+        .nav-cta:hover { background: #C8751D; transform: translateY(-1px); }
+
+        .hero {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 4rem 2rem; position: relative; z-index: 5;
+            min-height: calc(100vh - 70px);
+        }
+        .hero-eyebrow {
+            font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--copper); margin-bottom: 1.5rem;
+            display: flex; align-items: center; gap: 12px;
+            opacity: 0; animation: fadeSlideUp .8s ease .2s forwards;
+        }
+        .hero-eyebrow::before, .hero-eyebrow::after {
+            content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(181,101,29, .5));
+            max-width: 60px;
+        }
+        .hero-eyebrow::after { background: linear-gradient(270deg, transparent, rgba(181,101,29, .5)); }
+        .hero-h1 {
+            font-family: 'DM Serif Display', serif; font-size: clamp(3.5rem, 8vw, 7.5rem);
+            line-height: .95; letter-spacing: -2px; color: #F5F0E8; margin-bottom: 1rem;
+            opacity: 0; animation: fadeSlideUp .9s ease .4s forwards;
+        }
+        .hero-h1 em { font-style: italic; color: var(--copper); }
+        .hero-sub {
+            font-size: clamp(1rem, 2vw, 1.2rem); color: rgba(245,240,232, .55);
+            max-width: 560px; line-height: 1.7; margin-bottom: 2.5rem; font-weight: 300;
+            opacity: 0; animation: fadeSlideUp .9s ease .6s forwards;
+        }
+        .hero-actions {
+            display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap;
+            opacity: 0; animation: fadeSlideUp .9s ease .8s forwards;
+        }
+        .btn-primary {
+            background: var(--copper); color: #F5F0E8; border: none; border-radius: 8px;
+            padding: 14px 36px; font-size: 14px; font-weight: 700; letter-spacing: 1px;
+            cursor: pointer; font-family: 'Barlow', sans-serif; text-transform: uppercase;
+            transition: all .25s; position: relative; overflow: hidden;
+            border-bottom: 3px solid rgba(0, 0, 0, .2);
+        }
+        .btn-primary:hover { background: #C8751D; transform: translateY(-2px); box-shadow: 0 12px 40px rgba(181,101,29, .35); }
+        .btn-secondary {
+            background: transparent; color: #F5F0E8; border: 1px solid rgba(245,240,232, .25); border-radius: 8px;
+            padding: 14px 36px; font-size: 14px; font-weight: 500; letter-spacing: .5px;
+            cursor: pointer; font-family: 'Barlow', sans-serif; transition: all .25s;
+        }
+        .btn-secondary:hover { border-color: var(--copper); color: var(--copper); }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* DASHBOARD PAGE */
+        #dashboard { display: none; background: var(--sand); color: var(--stone); min-height: 100vh; }
+        .topbar {
+            background: var(--stone); color: #F5F0E8; padding: 0 1.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px; border-bottom: 3px solid var(--copper);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 14px; }
+        .brand-name { font-family: 'DM Serif Display', serif; font-size: 19px; color: #F5F0E8; }
+        .brand-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--copper); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+
+        .main-grid { display: grid; grid-template-columns: 280px 1fr; }
+        .sidebar {
+            background: var(--panel); border-right: 0.5px solid var(--border);
+            padding: 1.25rem 1rem; display: flex; flex-direction: column; gap: 1.4rem;
+            height: calc(100vh - 60px); overflow-y: auto;
+        }
+        .sec-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--cement); margin-bottom: 8px; }
+        .input-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .input-label { font-size: 11px; color: var(--cement); font-weight: 500; }
+        .ifield { background: white; border: 0.5px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--stone); width: 100%; outline: none; }
+        .gen-btn {
+            background: var(--stone); color: #F5F0E8; border: none; border-radius: 8px;
+            padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+            border-bottom: 3px solid var(--copper); transition: all .15s;
+        }
+        .gen-btn:hover { background: #2c2a25; transform: translateY(-1px); }
+
+        .content-area { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; background: var(--sand); }
+        .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .metric-card { background: white; border: 0.5px solid var(--border); border-radius: 10px; padding: 16px; border-top: 3px solid var(--copper); }
+        .m-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--cement); text-transform: uppercase; margin-bottom: 4px; }
+        .m-value { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--stone); }
+
+        .panel { background: white; border: 0.5px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1rem; }
+        .panel-head { padding: 12px 16px; border-bottom: 0.5px solid var(--border); background: var(--panel); display: flex; justify-content: space-between; align-items: center; }
+        .panel-title { font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; color: var(--stone); }
+        .panel-body { padding: 16px; position: relative; }
+
+        #floorPlanContainer { width: 100%; min-height: 650px; background: #002B36; border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.4); border: 2px solid #073642; }
+        .floor-canvas { width: 100%; height: 100%; cursor: crosshair; }
+
+        .gov-rule-item { font-size: 12px; padding: 8px; border-bottom: 0.5px solid var(--border); color: var(--steel); }
+        .gov-rule-item:last-child { border-bottom: none; }
+
+        /* LOADER */
+        #loader {
+            position: fixed; inset: 0; background: var(--dark); z-index: 1000;
+            display: none; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .loader-box { width: 40px; height: 40px; border: 3px solid var(--copper); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .floor-selector { display: flex; gap: 8px; margin-bottom: 1rem; }
+        .floor-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; background: white; font-size: 11px; font-family: 'DM Mono', monospace; }
+        .floor-btn.active { background: var(--stone); color: white; border-color: var(--stone); }
+        
+        .download-btn { background: var(--lime); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .download-btn:hover { background: #3d6a4c; }
+    </style>
+</head>
+<body>
+
+    <section id="landing">
+        <div id="bgCanvas"></div>
+        <nav class="nav">
+            <div class="nav-logo">
+                <div class="nav-icon">S</div>
+                <div class="nav-text">
+                    <div class="name">StructAI</div>
+                    <div class="sub">Advanced 2D Architect</div>
+                </div>
+            </div>
+            <button class="nav-cta" onclick="showDashboard()">Start Designing</button>
+        </nav>
+
+        <div class="hero">
+            <div class="hero-eyebrow">Professional Floor Planning</div>
+            <h1 class="hero-h1">Design with <em>Precision</em>.</h1>
+            <p class="hero-sub">Generate detailed 2D floor plans with furniture, structural analysis, and location-based boring reports.</p>
+            <div class="hero-actions">
+                <button class="btn-primary" onclick="showDashboard()">Create New Design</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="dashboard">
+        <div class="topbar">
+            <div class="topbar-left">
+                <div class="brand-name">StructAI Dashboard</div>
+            </div>
+            <div class="topbar-right">
+                <button class="download-btn" onclick="downloadPlan()">
+                    <span>Download Plan (PNG)</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <aside class="sidebar">
+                <div>
+                    <div class="sec-title">Location & Soil</div>
+                    <div class="input-row">
+                        <label class="input-label">City</label>
+                        <input type="text" id="city" class="ifield" value="Mumbai" onchange="generateDesign()">
+                    </div>
+                    <div class="input-row">
+                        <label class="input-label">PIN Code</label>
+                        <input type="text" id="pincode" class="ifield" value="400001" onchange="generateDesign()">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="sec-title">Plot Dimensions</div>
+                    <div class="input-row">
+                        <label class="input-label">Plot Width (ft)</label>
+                        <input type="number" id="plotWidth" class="ifield" value="30" onchange="syncDimensions('dims')">
+                    </div>
+                    <div class="input-row">
+                        <label class="input-label">Plot Length (ft)</label>
+                        <input type="number" id="plotLength" class="ifield" value="40" onchange="syncDimensions('dims')">
+                    </div>
+                    <div class="input-row">
+                        <label class="input-label">Total Area (sqft)</label>
+                        <input type="number" id="plotArea" class="ifield" value="1200" onchange="syncDimensions('area')">
+                    </div>
+                    <div class="input-row">
+                        <label class="input-label">Floors</label>
+                        <input type="number" id="floors" class="ifield" value="1" min="1" max="5" onchange="generateDesign()">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="sec-title">Configuration</div>
+                    <div class="input-row">
+                        <label class="input-label">Rooms</label>
+                        <input type="number" id="rooms" class="ifield" value="2" onchange="generateDesign()">
+                    </div>
+                    <div class="input-row">
+                        <label class="input-label">Bathrooms</label>
+                        <input type="number" id="bathrooms" class="ifield" value="1" onchange="generateDesign()">
+                    </div>
+                    <div class="input-row">
+                        <label class="input-label">Washroom Type</label>
+                        <select id="bathType" class="ifield" onchange="generateDesign()">
+                            <option value="common">Common</option>
+                            <option value="attached">Attached</option>
+                            <option value="com_plus_attach">Common + Attached</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="sec-title">Vastu & Orientation</div>
+                    <div class="input-row">
+                        <label class="input-label">Main Entrance Facing</label>
+                        <select id="orientation" class="ifield" onchange="generateDesign()">
+                            <option value="N">North (Vastu Recommended)</option>
+                            <option value="E">East</option>
+                            <option value="W">West</option>
+                            <option value="S">South</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="gen-btn" onclick="generateDesign()">Update Design</button>
+            </aside>
+
+            <main class="content-area">
+                <div class="metrics-row">
+                    <div class="metric-card">
+                        <div class="m-label">Carpet Area</div>
+                        <div class="m-value" id="carpet-val">0 sqft</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="m-label">Built-up Area</div>
+                        <div class="m-value" id="built-val">0 sqft</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="m-label">Boring Depth</div>
+                        <div class="m-value" id="boring-val">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="m-label">Safety Score</div>
+                        <div class="m-value" id="safety-score">0%</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-head">
+                        <div class="panel-title">Advanced 2D Architectural Layout</div>
+                        <div class="floor-selector" id="floor-tabs"></div>
+                    </div>
+                    <div class="panel-body">
+                        <div id="floorPlanContainer">
+                            <canvas id="floorCanvas" class="floor-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="panel">
+                        <div class="panel-head"><div class="panel-title">Location Report & Soil</div></div>
+                        <div class="panel-body">
+                            <div class="gov-rule-item"><strong>Soil:</strong> <span id="soil-val">-</span></div>
+                            <div class="gov-rule-item"><strong>Foundation:</strong> <span id="foundation-val">-</span></div>
+                            <div class="gov-rule-item"><strong>FSI Rule:</strong> <span id="fsi-val">-</span></div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head"><div class="panel-title">Compliance & Rules</div></div>
+                        <div class="panel-body" id="rules-container"></div>
+                    </div>
+                </div>
+
+                <!-- NEW STRUCTURAL PAGE SECTION -->
+                <div id="structural-page" class="panel" style="margin-top: 2rem; scroll-margin-top: 80px;">
+                    <div class="panel-head">
+                        <div class="panel-title">3D Structural Column Grid</div>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="colShape3D" class="ifield" style="width: 120px; padding: 4px 8px; font-size: 10px;" onchange="update3DStructural()">
+                                <option value="square">Square</option>
+                                <option value="circle">Circular</option>
+                                <option value="rectangle">Rectangular</option>
+                            </select>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <label style="font-size: 9px; font-family: 'DM Mono';">Width:</label>
+                                <input type="range" id="colWidth3D" min="230" max="600" value="300" style="width: 80px;" oninput="update3DStructural()">
+                                <span id="colWidth3DVal" style="font-size: 9px; font-family: 'DM Mono'; min-width: 35px;">300mm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 0;">
+                        <div id="structuralCanvasContainer" style="width: 100%; height: 500px; background: #111;"></div>
+                    </div>
+                </div>
+                <!-- NEW FOUNDATION PAGE SECTION -->
+                <div id="foundation-page" class="panel" style="margin-top: 2rem; scroll-margin-top: 80px;">
+                    <div class="panel-head">
+                        <div class="panel-title">3D Foundation Grid Analysis</div>
+                        <div id="foundation-specs-badge" style="font-family: 'DM Mono'; font-size: 10px; color: var(--copper); background: rgba(181,101,29,0.1); padding: 4px 10px; border-radius: 4px;">
+                            Fetching Soil Data...
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 0; position: relative;">
+                        <div id="foundationCanvasContainer" style="width: 100%; height: 500px; background: #0a0a0a;"></div>
+                        <div id="foundation-info-overlay" style="position: absolute; bottom: 20px; left: 20px; background: rgba(13,15,20,0.8); padding: 15px; border-radius: 8px; border: 1px solid var(--copper); font-family: 'DM Mono'; font-size: 11px; color: #fff; pointer-events: none;">
+                            <div style="color: var(--copper); font-weight: bold; margin-bottom: 5px;">FOUNDATION PARAMETERS</div>
+                            <div id="f-soil">Soil: -</div>
+                            <div id="f-depth">Depth: -</div>
+                            <div id="f-type">Footing: -</div>
+                            <div id="f-load" style="margin-top: 10px; border-top: 1px solid rgba(181,101,29,0.3); padding-top: 10px; color: var(--gold);">Est. Load: - tons</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D INTERIOR FLOOR PLAN SECTION -->
+                <div id="interior-3d-page" class="panel" style="margin-top: 2rem; scroll-margin-top: 80px;">
+                    <div class="panel-head">
+                        <div class="panel-title">3D Interior Floor Plan & Furniture</div>
+                        <div id="interior-status-badge" style="font-family: 'DM Mono'; font-size: 10px; color: var(--copper); background: rgba(181,101,29,0.1); padding: 4px 10px; border-radius: 4px;">
+                            Isometric Design View
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 0; position: relative;">
+                        <div id="interiorCanvasContainer" style="width: 100%; height: 600px; background: #f0f0f0;"></div>
+                        <div style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 6px; font-size: 10px; color: #666; border: 1px solid #ddd; pointer-events: none;">
+                            • Isometric Perspective<br>
+                            • Real-time Furniture Placement<br>
+                            • 3D Wall Rendering
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FINAL PROJECT SUMMARY REPORT SECTION -->
+                <div id="summary-report-page" class="panel" style="margin-top: 2rem; scroll-margin-top: 80px; border-top: 5px solid var(--gold);">
+                    <div class="panel-head">
+                        <div class="panel-title">Final Project Summary Report</div>
+                        <button class="download-btn" style="background: var(--gold);" onclick="window.print()">⎙ Print Full Report</button>
+                    </div>
+                    <div class="panel-body" style="background: #fff; padding: 2rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <div>
+                                <h3 style="font-family: 'DM Serif Display'; font-size: 1.5rem; margin-bottom: 1rem; color: var(--stone);">Architectural Summary</h3>
+                                <div id="summary-arch-list" style="font-size: 13px; line-height: 2;">
+                                    <!-- Dynamic -->
+                                </div>
+                            </div>
+                            <div>
+                                <h3 style="font-family: 'DM Serif Display'; font-size: 1.5rem; margin-bottom: 1rem; color: var(--stone);">Structural & Foundation</h3>
+                                <div id="summary-struct-list" style="font-size: 13px; line-height: 2;">
+                                    <!-- Dynamic -->
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);">
+                            <h3 style="font-family: 'DM Serif Display'; font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--stone);">Government Compliance</h3>
+                            <div id="summary-gov-list" style="font-size: 12px; color: var(--steel); column-count: 2;">
+                                <!-- Dynamic -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <div id="loader">
+        <div class="loader-box"></div>
+        <div style="color:var(--copper); margin-top:20px; font-family:'DM Mono',monospace; font-size:12px; letter-spacing:2px;">DRAFTING 2D MODEL...</div>
+    </div>
+
+    <script>
+        let designData = null;
+        let currentFloorIdx = 0;
+        let rooms = [];
+        let draggingRoom = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // 3D Structural variables
+        let structScene, structCamera, structRenderer, structGroup;
+        let foundScene, foundCamera, foundRenderer, foundGroup;
+        let interiorScene, interiorCamera, interiorRenderer, interiorGroup, interiorFont;
+
+        function initBgAnimation() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const bg = document.getElementById('bgCanvas');
+            bg.appendChild(canvas);
+            function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize); resize();
+            const particles = Array.from({length: 50}, () => ({
+                x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                size: Math.random() * 2 + 1, speedX: Math.random() * 0.6 - 0.3, speedY: Math.random() * 0.6 - 0.3
+            }));
+            function animate() {
+                if (document.getElementById('landing').style.display === 'none') return;
+                ctx.fillStyle = 'rgba(13, 15, 20, 0.1)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.x += p.speedX; p.y += p.speedY;
+                    if(p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                    if(p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fillStyle = '#B5651D'; ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+        initBgAnimation();
+
+        function showDashboard() {
+            gsap.to('#landing', { opacity: 0, duration: 0.5, onComplete: () => {
+                document.getElementById('landing').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+                // Give the browser a moment to layout the dashboard
+                setTimeout(() => {
+                    init3DStructural();
+                    init3DFoundation();
+                    init3DInterior();
+                    generateDesign();
+                }, 100);
+            }});
+        }
+
+        function syncDimensions(source) {
+            const w = document.getElementById('plotWidth');
+            const l = document.getElementById('plotLength');
+            const a = document.getElementById('plotArea');
+
+            const MAX_WIDTH = 150;
+            const MAX_LENGTH = 200;
+
+            if (source === 'dims') {
+                let currentW = parseFloat(w.value) || 0;
+                let currentL = parseFloat(l.value) || 0;
+
+                // Enforce Maximum Limits
+                if (currentW > MAX_WIDTH) {
+                    w.value = MAX_WIDTH;
+                    currentW = MAX_WIDTH;
+                    console.warn(`Width capped at ${MAX_WIDTH}ft`);
+                }
+                if (currentL > MAX_LENGTH) {
+                    l.value = MAX_LENGTH;
+                    currentL = MAX_LENGTH;
+                    console.warn(`Length capped at ${MAX_LENGTH}ft`);
+                }
+
+                a.value = currentW * currentL;
+            } else {
+                let currentA = parseFloat(a.value) || 0;
+                const MAX_AREA = MAX_WIDTH * MAX_LENGTH;
+
+                if (currentA > MAX_AREA) {
+                    a.value = MAX_AREA;
+                    currentA = MAX_AREA;
+                    console.warn(`Area capped at ${MAX_AREA}sqft`);
+                }
+
+                const side = Math.sqrt(currentA);
+                w.value = Math.round(side);
+                l.value = Math.round(side);
+            }
+            generateDesign();
+        }
+
+        async function generateDesign() {
+            const plotWidth = parseFloat(document.getElementById('plotWidth').value) || 0;
+            const plotLength = parseFloat(document.getElementById('plotLength').value) || 0;
+            const plotArea = parseFloat(document.getElementById('plotArea').value) || 0;
+
+            if (plotWidth < 15 && plotLength < 15 && plotArea < 110) {
+                alert("cant desing");
+                return;
+            }
+
+            console.log("Generating design...");
+            document.getElementById('loader').style.display = 'flex';
+            // ... (rest of the payload)
+            const payload = {
+                city: document.getElementById('city').value,
+                pincode: document.getElementById('pincode').value,
+                plotWidth: document.getElementById('plotWidth').value,
+                plotLength: document.getElementById('plotLength').value,
+                plotArea: document.getElementById('plotArea').value,
+                floors: document.getElementById('floors').value,
+                rooms: document.getElementById('rooms').value,
+                bathrooms: document.getElementById('bathrooms').value,
+                bathType: document.getElementById('bathType').value,
+                orientation: document.getElementById('orientation').value,
+                poojaRoom: true, parking: true
+            };
+            try {
+                const res = await fetch('/generate_design', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                designData = await res.json();
+                console.log("Design data received:", designData);
+                
+                // FORCE RE-INIT ROOMS ON CONFIG CHANGE
+                rooms = []; 
+                
+                updateUI(); // This will trigger drawAdvanced2D -> initRooms
+                console.log("UI Update complete. Rooms initialized:", rooms.length);
+                update3DStructural();
+                update3DFoundation();
+                update3DInterior();
+            } catch (err) {
+                console.error("Error generating design:", err);
+            } finally {
+                setTimeout(() => document.getElementById('loader').style.display = 'none', 600);
+            }
+        }
+
+        function updateUI() {
+            if (!designData) return;
+            console.log("Updating UI...");
+            // ...
+            document.getElementById('carpet-val').innerText = `${designData.summary.total_carpet} sqft`;
+            document.getElementById('built-val').innerText = `${designData.summary.total_built_up} sqft`;
+            document.getElementById('boring-val').innerText = designData.summary.boring_depth;
+            document.getElementById('safety-score').innerText = `${designData.summary.safety_score}%`;
+            document.getElementById('soil-val').innerText = designData.summary.soil_fertility;
+            document.getElementById('foundation-val').innerText = designData.summary.foundation_fertility;
+            document.getElementById('fsi-val').innerText = designData.summary.fsi_applied;
+            
+            const rulesCont = document.getElementById('rules-container');
+            rulesCont.innerHTML = designData.summary.gov_rules.map(r => `<div class="gov-rule-item">${r}</div>`).join('');
+
+            const tabs = document.getElementById('floor-tabs');
+            tabs.innerHTML = designData.floors.map((f, i) => `
+                <button class="floor-btn ${i === currentFloorIdx ? 'active' : ''}" onclick="switchFloor(${i})">Floor ${f.floor_no}</button>
+            `).join('');
+
+            // UPDATE FINAL SUMMARY REPORT
+            document.getElementById('summary-arch-list').innerHTML = `
+                <div><strong>Total Built-up:</strong> ${designData.summary.total_built_up} sqft</div>
+                <div><strong>Carpet Area:</strong> ${designData.summary.total_carpet} sqft</div>
+                <div><strong>Configuration:</strong> ${document.getElementById('rooms').value} BHK</div>
+                <div><strong>Total Floors:</strong> ${designData.summary.floors || document.getElementById('floors').value}</div>
+                <div><strong>Orientation:</strong> ${document.getElementById('orientation').options[document.getElementById('orientation').selectedIndex].text}</div>
+            `;
+            document.getElementById('summary-struct-list').innerHTML = `
+                <div><strong>Foundation Type:</strong> ${designData.summary.foundation_fertility}</div>
+                <div><strong>Boring Depth:</strong> ${designData.summary.boring_depth}</div>
+                <div><strong>Soil Category:</strong> ${designData.summary.soil_fertility}</div>
+                <div><strong>Estimated Load:</strong> ${Math.round((parseFloat(document.getElementById('plotWidth').value) * parseFloat(document.getElementById('plotLength').value)) * parseInt(document.getElementById('floors').value) * 0.12)} tons</div>
+                <div><strong>Column Count:</strong> ${designData.summary.column_count}</div>
+            `;
+            document.getElementById('summary-gov-list').innerHTML = designData.summary.gov_rules.map(r => `<div>• ${r}</div>`).join('');
+
+            drawAdvanced2D();
+        }
+
+        function switchFloor(idx) {
+            currentFloorIdx = idx;
+            updateUI();
+        }
+
+        function drawAdvanced2D() {
+            console.log("Drawing 2D...");
+            const canvas = document.getElementById('floorCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const container = document.getElementById('floorPlanContainer');
+            if (!container) return;
+            canvas.width = container.offsetWidth; canvas.height = 650;
+
+            if (!designData) {
+                console.log("No design data yet.");
+                return;
+            }
+
+            if (!canvas.dataset.dragInitialized) {
+                canvas.addEventListener('mousedown', handleMouseDown);
+                canvas.addEventListener('mousemove', handleMouseMove);
+                canvas.addEventListener('mouseup', handleMouseUp);
+                canvas.dataset.dragInitialized = "true";
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const floor = designData.floors[currentFloorIdx];
+            if (!floor) {
+                console.log("No floor data for index:", currentFloorIdx);
+                return;
+            }
+
+            const p = 80;
+            const plotW = designData.summary.plot_width || 30;
+            const plotL = designData.summary.plot_length || 40;
+            
+            // SCALE: Use a scale that fits the plot within the canvas area
+            const scale = Math.min((canvas.width - p*2) / plotW, (canvas.height - p*2) / plotL);
+            const w = plotW * scale;
+            const h = plotL * scale;
+
+            if (rooms.length === 0) {
+                console.log("Initializing rooms for drawing...");
+                initRooms(p, w, h);
+            }
+            
+            if (rooms.length === 0) {
+                console.error("Failed to initialize rooms.");
+                return;
+            }
+            
+            console.log("Rooms to draw:", rooms.length);
+
+            // PROFESSIONAL BLUEPRINT GRID
+            ctx.strokeStyle = 'rgba(147, 161, 161, 0.05)'; ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for(let j=0; j<canvas.height; j+=20) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
+            
+            ctx.strokeStyle = 'rgba(147, 161, 161, 0.15)'; ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=100) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for(let j=0; j<canvas.height; j+=100) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
+
+            // DRAW SITE BOUNDARY
+            ctx.strokeStyle = 'rgba(147, 161, 161, 0.3)'; ctx.lineWidth = 2; ctx.setLineDash([10, 5]);
+            ctx.strokeRect(p-20, p-20, w+40, h+40); ctx.setLineDash([]);
+
+            drawNorthArrow(ctx, designData.summary.orientation);
+
+            // DRAW EXTERIOR DIMENSIONS (Like Maket.ai)
+            drawBlueprintDimensions(ctx, p, w, h);
+
+            // Draw each room
+            rooms.forEach(room => {
+                drawRoomObject(ctx, room);
+            });
+        }
+
+        function drawBlueprintDimensions(ctx, p, w, h) {
+            ctx.strokeStyle = '#93A1A1'; ctx.fillStyle = '#93A1A1'; ctx.font = 'bold 10px DM Mono';
+            ctx.lineWidth = 1;
+            
+            const plotW = designData.summary.plot_width;
+            const plotL = designData.summary.plot_length;
+
+            const drawDim = (x1, y1, x2, y2, text, offset) => {
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + offset.x, y1 + offset.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 + offset.x, y2 + offset.y); ctx.stroke();
+                
+                const mx = (x1 + x2)/2 + offset.x; const my = (y1 + y2)/2 + offset.y;
+                ctx.beginPath(); ctx.moveTo(x1 + offset.x, y1 + offset.y); ctx.lineTo(x2 + offset.x, y2 + offset.y); ctx.stroke();
+                
+                ctx.save(); ctx.translate(mx, my); 
+                if(offset.x !== 0) ctx.rotate(Math.PI/2);
+                ctx.textAlign = 'center'; ctx.fillText(text, 0, -5); ctx.restore();
+            };
+
+            drawDim(p, p, p + w, p, `${plotW} ft`, {x: 0, y: -40});
+            drawDim(p, p, p, p + h, `${plotL} ft`, {x: -40, y: 0});
+        }
+
+        function drawNorthArrow(ctx, orientation = 'N') {
+            ctx.save(); 
+            ctx.translate(ctx.canvas.width - 60, 60); 
+            let rotation = 0;
+            if (orientation === 'E') rotation = Math.PI/2;
+            else if (orientation === 'S') rotation = Math.PI;
+            else if (orientation === 'W') rotation = -Math.PI/2;
+            ctx.rotate(rotation);
+            ctx.strokeStyle = '#2AA198'; ctx.lineWidth = 2; ctx.beginPath();
+            ctx.moveTo(0, 20); ctx.lineTo(0, -20); ctx.lineTo(-5, -10); ctx.moveTo(0, -20); ctx.lineTo(5, -10);
+            ctx.stroke(); ctx.font = 'bold 12px DM Mono'; ctx.fillStyle = '#2AA198'; ctx.fillText("N", -5, -25); ctx.restore();
+        }
+
+        function initRooms(p, w, h) {
+            const floor = designData.floors[currentFloorIdx];
+            if (!floor) return;
+            const roomsCount = parseInt(floor.rooms) || 1;
+            const bathCount = parseInt(floor.bathrooms) || 0;
+            const hasPooja = floor.has_pooja;
+            
+            const plotW = designData.summary.plot_width || 30;
+            const plotL = designData.summary.plot_length || 40;
+            const scale = w / plotW;
+            const walkwayGap = 15; // Gap for walkways
+
+            rooms = [];
+
+            // 1. Define main zones - Living area is now larger
+            const livingW = w * 0.6;
+            const livingH = h * 0.6;
+
+            // LIVING AREA (NE)
+            rooms.push({ 
+                id: 'living', x: p + (w - livingW), y: p, w: livingW, h: livingH, 
+                name: "LIVING AREA", color: "rgba(38, 139, 210, 0.1)", 
+                furniture: [], sizeLabel: `${Math.round(livingW/scale)} ft x ${Math.round(livingH/scale)} ft` 
+            });
+
+            // KITCHEN (SE - EAST FACING)
+            const kitW = w * 0.4 - walkwayGap;
+            const kitH = h - livingH; 
+            rooms.push({ 
+                id: 'kitchen', x: p + (w - kitW), y: p + livingH + walkwayGap, w: kitW, h: kitH - walkwayGap, 
+                name: "KITCHEN (E)", color: "rgba(133, 153, 0, 0.1)", 
+                furniture: [], sizeLabel: `${Math.round(kitW/scale)} ft x ${Math.round((kitH - walkwayGap)/scale)} ft`,
+                doorPos: { x: 0, y: 40, angle: 0 } 
+            });
+
+            // POOJA (NE CORNER)
+            if (hasPooja) {
+                const poojaS = 60;
+                rooms.push({
+                    id: 'pooja', x: p + w - poojaS, y: p, w: poojaS, h: poojaS,
+                    name: "POOJA", color: "rgba(181, 137, 0, 0.2)",
+                    furniture: [], sizeLabel: "3 ft x 3 ft",
+                    doorPos: { x: 0, y: 30, angle: 0 }
+                });
+            }
+
+            // BEDROOMS (WEST SIDE) - Master is slightly bigger (1.2x weight)
+            const privateW = w - livingW - walkwayGap;
+            const masterWeight = 1.1; // Reduced master weight slightly to give living more prominence
+            const totalWeight = (roomsCount - 1) + masterWeight;
+            const unitH = (h - (roomsCount > 1 ? walkwayGap * (roomsCount - 1) : 0)) / totalWeight;
+            
+            let currentY = p;
+            for(let i=0; i<roomsCount; i++) {
+                const isMaster = (i === roomsCount - 1);
+                const currentBedH = isMaster ? unitH * masterWeight : unitH;
+                
+                rooms.push({ 
+                    id: `bed${i}`, x: p, y: currentY, w: privateW, h: currentBedH, 
+                    name: isMaster ? "MASTER BED (SW)" : `BEDROOM ${i+1}`, 
+                    color: "rgba(108, 113, 196, 0.1)", 
+                    furniture: [], sizeLabel: `${Math.round(privateW/scale)} ft x ${Math.round(currentBedH/scale)} ft`,
+                    doorPos: { x: privateW, y: 20, angle: Math.PI } 
+                });
+
+                if (floor.bath_type === 'attached' && i < bathCount) {
+                    const bW = 60; const bH = 50;
+                    rooms.push({
+                        id: `bath_att_${i}`, x: p + 5, y: currentY + currentBedH - bH - 5, w: bW, h: bH,
+                        name: "BATH", color: "rgba(211, 54, 130, 0.1)",
+                        furniture: [], sizeLabel: `${Math.round(bW/scale)}x${Math.round(bH/scale)} ft`,
+                        doorPos: { x: bW, y: 15, angle: Math.PI }
+                    });
+                } else if (floor.bath_type === 'com_plus_attach' && isMaster) {
+                    // Attached to Master ONLY in this mode
+                    const bW = 60; const bH = 50;
+                    rooms.push({
+                        id: `bath_att_master`, x: p + 5, y: currentY + currentBedH - bH - 5, w: bW, h: bH,
+                        name: "BATH (ATT)", color: "rgba(211, 54, 130, 0.1)",
+                        furniture: [], sizeLabel: `${Math.round(bW/scale)}x${Math.round(bH/scale)} ft`,
+                        doorPos: { x: bW, y: 15, angle: Math.PI }
+                    });
+                }
+                currentY += currentBedH + walkwayGap;
+            }
+
+            // COMMON BATH - Between Master Bedroom (SW) and Kitchen (SE)
+            const showCommon = (floor.bath_type === 'common' && bathCount > 0) || (floor.bath_type === 'com_plus_attach');
+            
+            if (showCommon) {
+                const bW = 70; const bH = 80;
+                // Positioned in the walkway gap, ensuring it doesn't overlap
+                const masterBed = rooms.find(r => r.id === `bed${roomsCount-1}`);
+                const kitchen = rooms.find(r => r.id === 'kitchen');
+                
+                const bx = p + privateW + walkwayGap / 2 - bW / 2;
+                const by = kitchen.y + kitchen.h / 2 - bH / 2; // Vertically centered between kitchen and master bedroom
+
+                rooms.push({
+                    id: 'bath_common', x: bx, y: by, w: bW, h: bH,
+                    name: "COMMON BATH", color: "rgba(211, 54, 130, 0.1)",
+                    furniture: [], sizeLabel: `${Math.round(bW/scale)}x${Math.round(bH/scale)} ft`,
+                    doorPos: { x: bW/2, y: 0, angle: Math.PI/2 }
+                });
+            }
+        }
+
+        function drawRoomObject(ctx, room) {
+            // Blueprint Style Room Fill
+            ctx.fillStyle = room.color || 'rgba(147, 161, 161, 0.05)';
+            ctx.fillRect(room.x, room.y, room.w, room.h);
+            
+            // THICK BLUEPRINT WALLS
+            ctx.strokeStyle = '#93A1A1'; ctx.lineWidth = 4;
+            ctx.strokeRect(room.x, room.y, room.w, room.h);
+
+            // Room Labels (Architectural Style)
+            ctx.fillStyle = '#EEE8D5'; ctx.font = 'bold 11px DM Mono'; ctx.textAlign = 'center';
+            ctx.fillText(room.name, room.x + room.w/2, room.y + room.h/2 - 5);
+            
+            ctx.font = '9px DM Mono'; ctx.fillStyle = '#93A1A1';
+            ctx.fillText(room.sizeLabel, room.x + room.w/2, room.y + room.h/2 + 10);
+
+            // Door Placement
+            if (room.id === 'living') {
+                drawDoor(ctx, room.x + room.w/2, room.y, 40, Math.PI, "MAIN", true); 
+            } else if (room.doorPos) {
+                drawDoor(ctx, room.x + room.doorPos.x, room.y + room.doorPos.y, 30, room.doorPos.angle, "DR", false);
+            }
+        }
+
+        function drawDoor(ctx, x, y, size, angle, lbl, isMain = false) {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.strokeStyle = isMain ? '#CB4B16' : '#268BD2'; ctx.lineWidth = 2; 
+            
+            // Door leaf
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -size); ctx.stroke();
+            
+            // Swing arc
+            ctx.setLineDash([2, 2]); ctx.beginPath(); 
+            ctx.arc(0, 0, size, -Math.PI/2, 0); ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        function drawWindows(ctx, room) {
+            ctx.strokeStyle = 'rgba(147, 161, 161, 0.8)'; ctx.lineWidth = 2;
+            const winSize = 40;
+            const p = 80;
+            const w = ctx.canvas.width - p*2;
+            const h = ctx.canvas.height - p*2;
+            
+            // Top Wall Window
+            if (room.y <= p) {
+                ctx.beginPath(); ctx.moveTo(room.x + room.w/2 - winSize/2, room.y); ctx.lineTo(room.x + room.w/2 + winSize/2, room.y); ctx.stroke();
+            }
+            // Bottom Wall Window
+            if (room.y + room.h >= p + h) {
+                ctx.beginPath(); ctx.moveTo(room.x + room.w/2 - winSize/2, room.y + room.h); ctx.lineTo(room.x + room.w/2 + winSize/2, room.y + room.h); ctx.stroke();
+            }
+            // Right Wall Window
+            if (room.x + room.w >= p + w) {
+                ctx.beginPath(); ctx.moveTo(room.x + room.w, room.y + room.h/2 - winSize/2); ctx.lineTo(room.x + room.w, room.y + room.h/2 + winSize/2); ctx.stroke();
+            }
+        }
+
+        function handleMouseDown(e) {
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            for (let i = rooms.length - 1; i >= 0; i--) {
+                const r = rooms[i];
+                if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+                    draggingRoom = r;
+                    dragOffset.x = x - r.x;
+                    dragOffset.y = y - r.y;
+                    return;
+                }
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!draggingRoom) return;
+            const rect = e.target.getBoundingClientRect();
+            const canvas = e.target;
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const p = 80;
+            const w = canvas.width - p*2;
+            const h = canvas.height - p*2;
+
+            let newX = x - dragOffset.x;
+            let newY = y - dragOffset.y;
+
+            // Boundary checks
+            if (newX < p) newX = p;
+            if (newX + draggingRoom.w > p + w) newX = p + w - draggingRoom.w;
+            if (newY < p) newY = p;
+            if (newY + draggingRoom.h > p + h) newY = p + h - draggingRoom.h;
+
+            draggingRoom.x = newX;
+            draggingRoom.y = newY;
+            drawAdvanced2D();
+            
+            // Optimization: Only update interior while dragging for smoothness
+            update3DInterior(); 
+        }
+
+        function handleMouseUp() {
+            if (draggingRoom) {
+                // Final update for structural and foundation on drop
+                update3DStructural();
+                update3DFoundation();
+            }
+            draggingRoom = null;
+        }
+
+        // --- Furniture Drawing Helpers ---
+        function drawSofa(ctx, x, y, w, h, angle) {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.fillStyle = '#e2e8f0'; ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+            ctx.fillRect(0, 0, w, h); ctx.strokeRect(0, 0, w, h);
+            // Armrests
+            ctx.strokeRect(0, 0, 15, h); ctx.strokeRect(w-15, 0, 15, h);
+            // Backrest
+            ctx.strokeRect(0, 0, w, 15);
+            ctx.restore();
+        }
+
+        function drawBed(ctx, x, y, w, h, angle) {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.fillStyle = '#f1f5f9'; ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+            ctx.fillRect(0, 0, w, h); ctx.strokeRect(0, 0, w, h);
+            // Pillows
+            ctx.strokeRect(10, 10, (w-30)/2, 25); ctx.strokeRect(w/2 + 5, 10, (w-30)/2, 25);
+            // Blanket line
+            ctx.beginPath(); ctx.moveTo(0, 45); ctx.lineTo(w, 45); ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawKitchenCounter(ctx, x, y, w, h) {
+            ctx.fillStyle = '#f8fafc'; ctx.strokeStyle = '#475569'; ctx.lineWidth = 2;
+            ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
+            // Sink
+            ctx.strokeRect(x + 20, y + 10, 30, h-20);
+            // Stove circles
+            ctx.beginPath(); ctx.arc(x + w - 40, y + h/2, 10, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x + w - 70, y + h/2, 10, 0, Math.PI*2); ctx.stroke();
+        }
+
+        function drawDining(ctx, x, y, size) {
+            ctx.strokeStyle = '#475569'; ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, size, size); // Table
+            // Chairs
+            const cs = 15;
+            ctx.strokeRect(x + size/2 - cs/2, y - cs, cs, cs);
+            ctx.strokeRect(x + size/2 - cs/2, y + size, cs, cs);
+            ctx.strokeRect(x - cs, y + size/2 - cs/2, cs, cs);
+            ctx.strokeRect(x + size, y + size/2 - cs/2, cs, cs);
+        }
+
+        function drawToilet(ctx, x, y, size) {
+            ctx.strokeStyle = '#94a3b8'; ctx.beginPath();
+            ctx.ellipse(x + size/2, y + size/2, size/2, size/3, 0, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.strokeRect(x, y, size/4, size); // Tank
+        }
+
+        function drawPooja(ctx, x, y, size) {
+            ctx.strokeStyle = '#D4A853'; ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, size, size); // Platform
+            // Small oil lamp symbol
+            ctx.beginPath();
+            ctx.moveTo(x + size/2, y + size - 5);
+            ctx.bezierCurveTo(x + 5, y + size - 5, x + 5, y + size/2, x + size/2, y + size/2);
+            ctx.bezierCurveTo(x + size - 5, y + size/2, x + size - 5, y + size - 5, x + size/2, y + size - 5);
+            ctx.stroke();
+            ctx.fillStyle = '#FF6B35';
+            ctx.beginPath();
+            ctx.moveTo(x + size/2, y + size/2 - 2);
+            ctx.lineTo(x + size/2 - 3, y + size/2 + 5);
+            ctx.lineTo(x + size/2 + 3, y + size/2 + 5);
+            ctx.fill();
+        }
+
+        function drawRoom(ctx, x, y, w, h, name, color, items) {
+            ctx.fillStyle = color; ctx.fillRect(x+5, y+5, w-10, h-10);
+            ctx.strokeStyle = '#1C1A17'; ctx.lineWidth = 2; ctx.strokeRect(x+5, y+5, w-10, h-10);
+            ctx.fillStyle = '#1C1A17'; ctx.font = 'bold 14px Barlow'; ctx.textAlign = 'center';
+            ctx.fillText(name, x + w/2, y + 30);
+            
+            // Furniture Mockups
+            ctx.font = 'italic 10px Barlow'; ctx.fillStyle = 'rgba(28,26,23,0.5)';
+            items.forEach((item, i) => {
+                ctx.fillText(`[${item}]`, x + w/2, y + 50 + i*18);
+            });
+        }
+
+        function drawDoor(ctx, x, y, size, angle, lbl, isMain = false) {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.strokeStyle = isMain ? '#8B3A2A' : '#3D5A6C'; ctx.lineWidth = 3; 
+            
+            // Door leaf (the actual door)
+            ctx.beginPath();
+            ctx.moveTo(0, 0); ctx.lineTo(0, -size); ctx.stroke();
+            
+            // Swing arc (Dashed)
+            ctx.setLineDash([4, 2]); ctx.beginPath(); 
+            // Draw arc from -PI/2 (up) to 0 (right) relative to current rotation
+            ctx.arc(0, 0, size, -Math.PI/2, 0); 
+            ctx.stroke();
+            
+            // Door label
+            ctx.setLineDash([]); ctx.font = '8px DM Mono'; ctx.fillStyle = '#333';
+            ctx.fillText(lbl, 5, -size/2);
+            ctx.restore();
+        }
+
+        function downloadPlan() {
+            const canvas = document.getElementById('floorCanvas');
+            const link = document.createElement('a');
+            link.download = `StructAI_Plan_Floor_${currentFloorIdx+1}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // --- 3D STRUCTURAL LOGIC ---
+        function init3DStructural() {
+            const container = document.getElementById('structuralCanvasContainer');
+            const width = container.offsetWidth || 800;
+            structScene = new THREE.Scene();
+            structScene.background = new THREE.Color(0x0d0f14);
+
+            structCamera = new THREE.PerspectiveCamera(45, width / 500, 0.1, 2000);
+            structCamera.position.set(400, 400, 400);
+            structCamera.lookAt(0, 0, 0);
+
+            structRenderer = new THREE.WebGLRenderer({ antialias: true });
+            structRenderer.setSize(width, 500);
+            container.innerHTML = ''; 
+            container.appendChild(structRenderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            structScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(200, 500, 300);
+            structScene.add(directionalLight);
+
+            structGroup = new THREE.Group();
+            structScene.add(structGroup);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (structGroup) structGroup.rotation.y += 0.002;
+                structRenderer.render(structScene, structCamera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                const c = document.getElementById('structuralCanvasContainer');
+                if (structCamera && structRenderer) {
+                    structCamera.aspect = c.offsetWidth / 500;
+                    structCamera.updateProjectionMatrix();
+                    structRenderer.setSize(c.offsetWidth, 500);
+                }
+            });
+        }
+
+        function update3DStructural() {
+            if (!structGroup || !designData) return;
+            while(structGroup.children.length > 0) structGroup.remove(structGroup.children[0]);
+
+            const colWidth = parseInt(document.getElementById('colWidth3D').value) / 10;
+            const colShape = document.getElementById('colShape3D').value;
+            document.getElementById('colWidth3DVal').innerText = document.getElementById('colWidth3D').value + "mm";
+
+            const floorCount = parseInt(document.getElementById('floors').value) || 1;
+            const heightPerFloor = 100;
+
+            // Centering logic for 3D
+            const canvas = document.getElementById('floorCanvas');
+            const p = 80;
+            const plotW = designData.summary.plot_width || 30;
+            const plotL = designData.summary.plot_length || 40;
+            const scale = Math.min((canvas.width - p*2) / plotW, (canvas.height - p*2) / plotL);
+            const cx = p + (plotW * scale)/2;
+            const cz = p + (plotL * scale)/2;
+
+            // Draw Ground Plane
+            const gridHelper = new THREE.GridHelper(800, 20, 0x333333, 0x222222);
+            structGroup.add(gridHelper);
+
+            // Draw Columns at Room Corners
+            rooms.forEach(room => {
+                const corners = [
+                    { x: room.x, z: room.y },
+                    { x: room.x + room.w, z: room.y },
+                    { x: room.x, z: room.y + room.h },
+                    { x: room.x + room.w, z: room.y + room.h }
+                ];
+
+                corners.forEach(corner => {
+                    let geometry;
+                    if (colShape === 'circle') {
+                        geometry = new THREE.CylinderGeometry(colWidth/2, colWidth/2, heightPerFloor * floorCount, 32);
+                    } else if (colShape === 'rectangle') {
+                        geometry = new THREE.BoxGeometry(colWidth * 1.5, heightPerFloor * floorCount, colWidth);
+                    } else { 
+                        geometry = new THREE.BoxGeometry(colWidth, heightPerFloor * floorCount, colWidth);
+                    }
+
+                    const material = new THREE.MeshPhongMaterial({ color: 0xB5651D });
+                    const column = new THREE.Mesh(geometry, material);
+                    column.position.set(corner.x - cx, (heightPerFloor * floorCount)/2, corner.z - cz);
+                    structGroup.add(column);
+                });
+
+                const beamMat = new THREE.MeshPhongMaterial({ color: 0x3D5A6C });
+                const createBeam = (w, h, d, px, py, pz) => {
+                    const g = new THREE.BoxGeometry(w, h, d);
+                    const m = new THREE.Mesh(g, beamMat);
+                    m.position.set(px, py, pz);
+                    structGroup.add(m);
+                };
+
+                for(let f=1; f<=floorCount; f++) {
+                    const floorY = f * heightPerFloor;
+                    createBeam(room.w, 5, 5, room.x + room.w/2 - cx, floorY, room.y - cz); 
+                    createBeam(room.w, 5, 5, room.x + room.w/2 - cx, floorY, room.y + room.h - cz); 
+                    createBeam(5, 5, room.h, room.x - cx, floorY, room.y + room.h/2 - cz); 
+                    createBeam(5, 5, room.h, room.x + room.w - cx, floorY, room.y + room.h/2 - cz); 
+                }
+            });
+        }
+
+        // --- 3D FOUNDATION LOGIC ---
+        function init3DFoundation() {
+            const container = document.getElementById('foundationCanvasContainer');
+            const width = container.offsetWidth || 800;
+            foundScene = new THREE.Scene();
+            foundScene.background = new THREE.Color(0x0a0a0a);
+
+            foundCamera = new THREE.PerspectiveCamera(45, width / 500, 0.1, 2000);
+            foundCamera.position.set(400, 300, 400);
+            foundCamera.lookAt(0, 0, 0);
+
+            foundRenderer = new THREE.WebGLRenderer({ antialias: true });
+            foundRenderer.setSize(width, 500);
+            container.innerHTML = '';
+            container.appendChild(foundRenderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            foundScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 400, 200);
+            foundScene.add(directionalLight);
+
+            foundGroup = new THREE.Group();
+            foundScene.add(foundGroup);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (foundGroup) foundGroup.rotation.y += 0.001;
+                foundRenderer.render(foundScene, foundCamera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                const c = document.getElementById('foundationCanvasContainer');
+                if (foundCamera && foundRenderer) {
+                    foundCamera.aspect = c.offsetWidth / 500;
+                    foundCamera.updateProjectionMatrix();
+                    foundRenderer.setSize(c.offsetWidth, 500);
+                }
+            });
+        }
+
+        function update3DFoundation() {
+            if (!foundGroup || !designData) return;
+            while(foundGroup.children.length > 0) foundGroup.remove(foundGroup.children[0]);
+
+            const soil = designData.summary.soil_fertility;
+            const depth = designData.summary.foundation_depth;
+            const type = designData.summary.foundation_fertility;
+
+            // Centering logic for 3D
+            const canvas = document.getElementById('floorCanvas');
+            const p = 80;
+            const plotW = designData.summary.plot_width || 30;
+            const plotL = designData.summary.plot_length || 40;
+            const scale = Math.min((canvas.width - p*2) / plotW, (canvas.height - p*2) / plotL);
+            const cx = p + (plotW * scale)/2;
+            const cz = p + (plotL * scale)/2;
+
+            // Load calculation: 1 ton per 10 sqft per floor approx
+            const floors = parseInt(document.getElementById('floors').value) || 1;
+            const area = parseFloat(document.getElementById('plotArea').value) || 1000;
+            const estLoad = Math.round(area * floors * 0.12); // in tons
+
+            // Update UI Labels
+            document.getElementById('foundation-specs-badge').innerText = `${type} | ${depth}`;
+            document.getElementById('f-soil').innerText = `Soil: ${soil}`;
+            document.getElementById('f-depth').innerText = `Depth: ${depth}`;
+            document.getElementById('f-type').innerText = `Type: ${type}`;
+            document.getElementById('f-load').innerText = `Est. Load: ${estLoad} tons`;
+
+            // Draw Ground Level (Semi-transparent)
+            const groundGeom = new THREE.PlaneGeometry(800, 800);
+            const groundMat = new THREE.MeshPhongMaterial({ color: 0x3d2b1f, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+            const ground = new THREE.Mesh(groundGeom, groundMat);
+            ground.rotation.x = Math.PI / 2;
+            foundGroup.add(ground);
+
+            // Draw Foundation Grid helper
+            const gridHelper = new THREE.GridHelper(800, 20, 0x444444, 0x222222);
+            gridHelper.position.y = 0.1;
+            foundGroup.add(gridHelper);
+
+            // Draw Footings based on Room corners
+            rooms.forEach(room => {
+                const corners = [
+                    { x: room.x, z: room.y },
+                    { x: room.x + room.w, z: room.y },
+                    { x: room.x, z: room.y + room.h },
+                    { x: room.x + room.w, z: room.y + room.h }
+                ];
+
+                corners.forEach(corner => {
+                    const footingSize = 60;
+                    const footingDepth = 80; 
+
+                    let footingGeom;
+                    if (type.includes('Pile')) {
+                        footingGeom = new THREE.CylinderGeometry(15, 15, footingDepth * 2, 16);
+                    } else if (type.includes('Isolated')) {
+                        footingGeom = new THREE.BoxGeometry(footingSize, 20, footingSize);
+                    } else {
+                        footingGeom = new THREE.BoxGeometry(footingSize * 1.2, 30, footingSize * 1.2);
+                    }
+
+                    const material = new THREE.MeshPhongMaterial({ color: 0x8B8880 });
+                    const footing = new THREE.Mesh(footingGeom, material);
+                    footing.position.set(corner.x - cx, -footingDepth/2, corner.z - cz);
+                    foundGroup.add(footing);
+
+                    const connectorGeom = new THREE.BoxGeometry(20, footingDepth, 20);
+                    const connector = new THREE.Mesh(connectorGeom, material);
+                    connector.position.set(corner.x - cx, -footingDepth/4, corner.z - cz);
+                    foundGroup.add(connector);
+                });
+            });
+        }
+
+        // --- 3D INTERIOR LOGIC ---
+        function init3DInterior() {
+            const container = document.getElementById('interiorCanvasContainer');
+            const width = container.offsetWidth || 800;
+            interiorScene = new THREE.Scene();
+            interiorScene.background = new THREE.Color(0x000000); // Black background
+
+            interiorCamera = new THREE.PerspectiveCamera(40, width / 600, 0.1, 3000);
+            interiorCamera.position.set(600, 500, 600);
+            interiorCamera.lookAt(0, 0, 0);
+
+            interiorRenderer = new THREE.WebGLRenderer({ antialias: true });
+            interiorRenderer.setSize(width, 600);
+            container.innerHTML = '';
+            container.appendChild(interiorRenderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            interiorScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(200, 500, 300);
+            interiorScene.add(directionalLight);
+
+            interiorGroup = new THREE.Group();
+            interiorScene.add(interiorGroup);
+
+            const loader = new THREE.FontLoader();
+            loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+                interiorFont = font;
+                if (designData) update3DInterior(); // Initial render if data exists
+            });
+
+            function animateInterior() {
+                requestAnimationFrame(animateInterior);
+                interiorGroup.rotation.y += 0.002; // Keep it moving
+                interiorRenderer.render(interiorScene, interiorCamera);
+            }
+            animateInterior();
+        }
+
+        function update3DInterior() {
+            if (!interiorGroup || !designData) return;
+            console.log("Updating 3D Interior with rooms:", rooms.length);
+            try {
+                while(interiorGroup.children.length > 0) interiorGroup.remove(interiorGroup.children[0]);
+
+                const canvas = document.getElementById('floorCanvas');
+                const p = 80;
+                const plotW = designData.summary.plot_width || 30;
+                const plotL = designData.summary.plot_length || 40;
+                const scale = Math.min((canvas.width - p*2) / plotW, (canvas.height - p*2) / plotL);
+                const w = plotW * scale;
+                const h = plotL * scale;
+                const cx = p + (plotW * scale)/2;
+                const cz = p + (plotL * scale)/2;
+
+                const wallHeight = 80;
+                const wallThickness = 5;
+
+                // 0. MAIN BASE PLATE
+                const baseG = new THREE.BoxGeometry(w + 40, 2, h + 40);
+                const baseM = new THREE.MeshPhongMaterial({ color: 0x333333 }); // Darker base
+                const base = new THREE.Mesh(baseG, baseM);
+                base.position.set(p + w/2 - cx, -1, p + h/2 - cz);
+                interiorGroup.add(base);
+
+                rooms.forEach(room => {
+                    // 1. FLOORING
+                    const floorGeom = new THREE.BoxGeometry(room.w - 2, 2.5, room.h - 2);
+                    const floorMat = new THREE.MeshPhongMaterial({ color: 0xdeb887 }); 
+                    const floor = new THREE.Mesh(floorGeom, floorMat);
+                    floor.position.set(room.x + room.w/2 - cx, 0, room.y + room.h/2 - cz);
+                    interiorGroup.add(floor);
+
+                    // 2. WALLS
+                    const wallMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
+                    
+                    const createWall = (ww, wh, wd, wx, wy, wz) => {
+                        const g = new THREE.BoxGeometry(ww, wh, wd);
+                        const m = new THREE.Mesh(g, wallMat);
+                        m.position.set(wx, wy, wz);
+                        interiorGroup.add(m);
+                    };
+
+                    const createDoor = (dw, dh, dx, dy, dz) => {
+                        const doorG = new THREE.BoxGeometry(dw, dh, wallThickness - 2);
+                        const doorM = new THREE.MeshPhongMaterial({ color: 0x8b4513 }); // Brown door
+                        const door = new THREE.Mesh(doorG, doorM);
+                        door.position.set(dx, dy, dz);
+                        interiorGroup.add(door);
+                    };
+
+                    const createWindow = (ww, wh, wx, wy, wz) => {
+                        const windowG = new THREE.BoxGeometry(ww, wh, wallThickness);
+                        const windowM = new THREE.MeshPhongMaterial({ color: 0xadd8e6, transparent: true, opacity: 0.5 }); // Light blue window
+                        const window = new THREE.Mesh(windowG, windowM);
+                        window.position.set(wx, wy, wz);
+                        interiorGroup.add(window);
+                    };
+
+                    // Walls with door gaps
+                    if (room.id === 'living') {
+                        createWall(room.w / 2 - 20, wallHeight, wallThickness, room.x + room.w/4 - cx, wallHeight/2, room.y - cz);
+                        createWall(room.w / 2 - 20, wallHeight, wallThickness, room.x + room.w * 0.75 - cx, wallHeight/2, room.y - cz);
+                        createDoor(40, wallHeight - 10, room.x + room.w/2 - cx, (wallHeight-10)/2, room.y - cz);
+                    } else {
+                        createWall(room.w, wallHeight, wallThickness, room.x + room.w/2 - cx, wallHeight/2, room.y - cz);
+                    }
+                    createWall(wallThickness, wallHeight, room.h, room.x - cx, wallHeight/2, room.y + room.h/2 - cz);
+                    createWall(room.w, wallHeight, wallThickness, room.x + room.w/2 - cx, wallHeight/2, room.y + room.h - cz);
+                    createWall(wallThickness, wallHeight, room.h, room.x + room.w - cx, wallHeight/2, room.y + room.h/2 - cz);
+
+                    // Add windows
+                    createWindow(room.w / 2, wallHeight * 0.4, room.x + room.w/2 - cx, wallHeight/2, room.y + room.h - cz);
+
+                    // 3. FURNITURE
+                    if (room.id.includes('bed')) {
+                        const bedG = new THREE.BoxGeometry(room.w * 0.6, 12, room.h * 0.7);
+                        const bedM = new THREE.MeshPhongMaterial({ color: 0x5f9ea0 });
+                        const bed = new THREE.Mesh(bedG, bedM);
+                        bed.position.set(room.x + room.w/2 - cx, 6, room.y + room.h/2 - cz);
+                        interiorGroup.add(bed);
+                    } else if (room.id === 'living') {
+                        const s1G = new THREE.BoxGeometry(room.w * 0.7, 10, 25);
+                        const sM = new THREE.MeshPhongMaterial({ color: 0x708090 });
+                        const s1 = new THREE.Mesh(s1G, sM);
+                        s1.position.set(room.x + room.w/2 - cx, 5, room.y + 30 - cz);
+                        interiorGroup.add(s1);
+                    } else if (room.id === 'kitchen') {
+                        const c1G = new THREE.BoxGeometry(room.w - 10, 25, 20);
+                        const cM = new THREE.MeshPhongMaterial({ color: 0xdddddd });
+                        const c1 = new THREE.Mesh(c1G, cM);
+                        c1.position.set(room.x + room.w/2 - cx, 12.5, room.y + 10 - cz);
+                        interiorGroup.add(c1);
+                    } else if (room.id.includes('bath')) {
+                        const toiG = new THREE.CylinderGeometry(10, 10, 15, 16);
+                        const toiM = new THREE.MeshPhongMaterial({ color: 0xffffff });
+                        const toi = new THREE.Mesh(toiG, toiM);
+                        toi.position.set(room.x + 20 - cx, 7.5, room.y + 20 - cz);
+                        interiorGroup.add(toi);
+                    }
+
+                    // Room Labels
+                    if (interiorFont) {
+                        const textGeo = new THREE.TextGeometry(room.name, {
+                            font: interiorFont,
+                            size: 10,
+                            height: 1,
+                        });
+                        const textMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
+                        const textMesh = new THREE.Mesh(textGeo, textMat);
+                        textMesh.position.set(room.x + room.w/2 - cx, wallHeight + 10, room.y + room.h/2 - cz);
+                        textMesh.rotation.y = -Math.PI / 4;
+                        interiorGroup.add(textMesh);
+                    }
+                });
+            } catch (e) {
+                console.error("Error in update3DInterior:", e);
+            }
+        }
+    </script>
+</body>
+</html>
